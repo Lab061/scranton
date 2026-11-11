@@ -67,6 +67,16 @@ Add patterns for your own skills, or turn tagging off on a machine, in `<PASEO_H
 
 `strong` matches a skill, slash command or phrase that only that role uses; `weak` matches wording that suggests it. Patterns for a built-in role widen it; a new role name adds a role. Check your rules against roles you set by hand with `node packages/plugin/scripts/evaluate.ts` on that machine.
 
+## Analytics
+
+The hosted copy at scranton.lab061.com.br sends anonymous product analytics to PostHog, so we can see which parts of the office people use. Builds without a PostHog key — forks, self-hosted copies, local development — send nothing.
+
+**Sent:** page views (URL without query or fragment), and explicit events such as `office_loaded`, `agent_selected`, `machine_added`, `machine_connected` and `machine_unreachable`, with counts in ranges (`6-20` agents), states (`working`, `review`), built-in role names, and error categories (`plugin_missing`, `timeout`).
+
+**Never sent:** agent names, prompts, workspace or project names, custom role names, machine names, hostnames, paths, pairing links, or anything else the office displays. There is no autocapture, session recording, heatmap, survey or feature-flag call, and no PostHog script is loaded from a CDN. Browsers with Do Not Track on send nothing.
+
+To enable analytics in your own deployment, set `POSTHOG_KEY` (and `POSTHOG_HOST` for EU Cloud or a proxy) when deploying; the page's Content Security Policy then allows that host.
+
 ## Develop
 
 Requires Node 24 (`nvm use`).

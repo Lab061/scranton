@@ -3,6 +3,7 @@
 import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
 import { parseHostTarget } from "@getpaseo/protocol/host-target";
 import { demoHost } from "./demo.ts";
+import { bucket, track, trackError } from "./analytics.ts";
 
 export const PLUGIN_ID = "scranton";
 const STORE_KEY = "office.machines.v1";
@@ -112,6 +113,15 @@ const clients = new Map<
   { client: DaemonClient; ready: Promise<void> }
 >();
 const lastGood = new Map<string, HostState>();
+// Report each machine's first connection and first failure once per page load.
+const reported = new Set<string>();
+
+function errorCategory(msg: string) {
+  if (/plugin is not installed/i.test(msg)) return "plugin_missing";
+  if (/timed out/i.test(msg)) return "timeout";
+  if (/websocket|connect|network|closed/i.test(msg)) return "connection_failed";
+  return "other";
+}
 
 async function clientFor(m: Machine) {
   let entry = clients.get(m.id);
@@ -164,6 +174,15 @@ async function readMachine(m: Machine): Promise<HostState> {
     )) as Pick<HostState, "agents" | "labelColors" | "hostname">;
     const state: HostState = { ...snap, label: m.label, ok: true, error: null };
     lastGood.set(m.id, state);
+    if (!reported.has(m.id + ":ok")) {
+      reported.add(m.id + ":ok");
+      track("machine_connected", {
+        agents: bucket(snap.agents?.length || 0),
+        plugin_version: String(
+          (snap as { pluginVersion?: string }).pluginVersion || "unknown"
+        ),
+      });
+    }
     return state;
   } catch (err) {
     // Drop the client so the next poll reconnects from scratch; keep showing the last data.
@@ -171,13 +190,20 @@ async function readMachine(m: Machine): Promise<HostState> {
     clients.delete(m.id);
     c?.client.close?.().catch(() => {});
     const prev = lastGood.get(m.id);
+    const error = explain(err);
+    if (!reported.has(m.id + ":err")) {
+      reported.add(m.id + ":err");
+      const reason = errorCategory(error);
+      track("machine_unreachable", { reason, had_data: Boolean(prev) });
+      trackError("machine", reason);
+    }
     return {
       agents: [],
       labelColors: {},
       ...prev,
       label: m.label,
       ok: false,
-      error: explain(err),
+      error,
     };
   }
 }

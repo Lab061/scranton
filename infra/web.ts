@@ -19,4 +19,9 @@ export const site = new sst.aws.StaticSite("Web", {
   dev: {
     command: "npm run dev",
   },
+  // Optional product analytics; without a key the page sends nothing.
+  environment: {
+    VITE_POSTHOG_KEY: process.env.POSTHOG_KEY ?? "",
+    VITE_POSTHOG_HOST: process.env.POSTHOG_HOST ?? "",
+  },
 });

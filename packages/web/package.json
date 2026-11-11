@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@getpaseo/client": "^0.15.4",
-    "@getpaseo/protocol": "^0.15.4"
+    "@getpaseo/protocol": "^0.15.4",
+    "posthog-js": "^1.447.10"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

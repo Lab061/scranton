@@ -1,5 +1,6 @@
 // The "Machines" panel: add a machine by pairing link, remove one, see which are reachable.
 import { addMachine, listMachines, removeMachine } from "./hosts.ts";
+import { track } from "./analytics.ts";
 
 const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -30,6 +31,7 @@ function toggle(open?: boolean) {
   const panel = $("machines");
   const show = open ?? panel.hidden;
   panel.hidden = !show;
+  if (show) track("machines_panel_opened", { machines: listMachines().length });
   $("btn-machines").setAttribute("aria-expanded", String(show));
   if (show) render();
 }
@@ -57,6 +59,7 @@ export function setupMachines() {
       ?.dataset.remove;
     if (!id) return;
     removeMachine(id);
+    track("machine_removed", { machines: listMachines().length });
     location.reload(); // rooms are keyed by machine; a reload is the simplest clean slate
   });
   $<HTMLFormElement>("machine-form").addEventListener("submit", (ev) => {
@@ -69,11 +72,20 @@ export function setupMachines() {
         String(data.get("label") || ""),
         String(data.get("link") || "")
       );
+      track("machine_added", { machines: listMachines().length });
       form.reset();
       err.hidden = true;
       location.reload();
     } catch (e) {
-      err.textContent = (e as Error).message;
+      const msg = (e as Error).message;
+      track("machine_add_failed", {
+        reason: /already exists/.test(msg)
+          ? "duplicate_name"
+          : /#offer/.test(msg)
+            ? "not_encrypted_link"
+            : "invalid_link",
+      });
+      err.textContent = msg;
       err.hidden = false;
     }
   });
