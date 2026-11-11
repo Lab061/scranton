@@ -1,0 +1,7 @@
+{
+  "id": "scranton",
+  "name": "Scranton",
+  "description": "Feeds the Scranton pixel-art dashboard (who is working, idle or waiting on you, and which sessions run teams of subagents) and labels every session with a role.",
+  "media": [],
+  "requirements": { "paseo": ">=0.15.0" }
+}

@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A pixel-art office for your Paseo agents: who is working, idle, waiting on you or ready for review."
+    />
+    <title>Scranton</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #15131f;
+        --panel: #1f1c2d;
+        --panel-2: #2a2640;
+        --border: #3b3657;
+        --fg: #ece8f6;
+        --muted: #9a93b8;
+        --accent: #f2c14e;
+        --work: #4cc38a;
+        --need: #ff5d6c;
+        --idle: #6aa7ff;
+        --sleep: #8a84a8;
+        --done: #b6e36b;
+      }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) {
+          --bg: #efeaf7;
+          --panel: #ffffff;
+          --panel-2: #f4f0fb;
+          --border: #d6cfe6;
+          --fg: #221d33;
+          --muted: #6a6285;
+          --accent: #b7860b;
+          --work: #1f9d63;
+          --need: #d93245;
+          --idle: #2f6fd6;
+          --sleep: #7a7396;
+          --done: #5f8f12;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      body {
+        font:
+          14px/1.4 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        min-height: 100vh;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 20px;
+        padding: 14px 20px;
+        border-bottom: 2px solid var(--border);
+        background: var(--panel);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      h1 {
+        font:
+          14px "Press Start 2P",
+          monospace;
+        margin: 0;
+        letter-spacing: 1px;
+        color: var(--accent);
+      }
+      .counts {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        font:
+          11px Silkscreen,
+          monospace;
+        padding: 4px 8px;
+        border: 2px solid var(--border);
+        background: var(--panel-2);
+        border-radius: 2px;
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .chip b {
+        font-weight: normal;
+        font-size: 13px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        display: inline-block;
+        flex: none;
+      }
+      .need .dot,
+      .dot.need {
+        background: var(--need);
+      }
+      .review .dot,
+      .dot.review {
+        background: var(--done);
+      }
+      .chip.review {
+        border-color: var(--done);
+      }
+      .chip.review.zero {
+        border-color: var(--border);
+      }
+      .work .dot,
+      .dot.work {
+        background: var(--work);
+      }
+      .idle .dot,
+      .dot.idle {
+        background: var(--idle);
+      }
+      .sleep .dot,
+      .dot.sleep {
+        background: var(--sleep);
+      }
+      .chip.need {
+        border-color: var(--need);
+      }
+      .chip.need.zero {
+        border-color: var(--border);
+      }
+      .spacer {
+        flex: 1;
+      }
+      button {
+        font:
+          11px Silkscreen,
+          monospace;
+        color: var(--fg);
+        background: var(--panel-2);
+        border: 2px solid var(--border);
+        padding: 5px 9px;
+        cursor: pointer;
+        border-radius: 2px;
+      }
+      button:hover {
+        border-color: var(--accent);
+      }
+      button[aria-pressed="true"] {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+        padding: 20px;
+      }
+      @media (max-width: 700px) {
+        main {
+          padding: 16px;
+        }
+      }
+      .rooms {
+        display: grid;
+        gap: 20px;
+      }
+      .room {
+        background: var(--panel);
+        border: 2px solid var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .room-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        font:
+          11px Silkscreen,
+          monospace;
+        color: var(--muted);
+      }
+      .room-head .name {
+        color: var(--fg);
+        font-size: 13px;
+      }
+      .room-head .err {
+        color: var(--need);
+        margin-left: auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 60%;
+      }
+      .room-head .ok {
+        margin-left: auto;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        cursor: default;
+      }
+      aside {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(260px, 1fr) minmax(0, 3fr);
+        align-items: start;
+      }
+      aside .side {
+        display: grid;
+        gap: 16px;
+      }
+      @media (max-width: 900px) {
+        aside {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      #groups {
+        columns: 3 320px;
+        column-gap: 16px;
+        padding: 0 6px 8px;
+      }
+      .gbox {
+        break-inside: avoid;
+      }
+      #detail-card {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: min(380px, calc(100vw - 32px));
+        max-height: 70vh;
+        overflow: auto;
+        z-index: 8;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+      }
+      #detail-card h2 button {
+        margin-left: auto;
+        padding: 2px 7px;
+      }
+      .card {
+        background: var(--panel);
+        border: 2px solid var(--border);
+        border-radius: 2px;
+      }
+      .card h2 {
+        font:
+          11px "Press Start 2P",
+          monospace;
+        margin: 0;
+        padding: 12px 14px 8px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .card h2 .n {
+        color: var(--muted);
+      }
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 0 6px 8px;
+      }
+      .list li {
+        display: grid;
+        grid-template-columns: 8px minmax(0, 1fr) auto;
+        gap: 4px 10px;
+        align-items: center;
+        padding: 7px 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        border-radius: 2px;
+      }
+      .list li:hover {
+        background: var(--panel-2);
+      }
+      .list li.sel {
+        border-color: var(--accent);
+        background: var(--panel-2);
+      }
+      .list .title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .list .meta {
+        grid-column: 2 / 4;
+        color: var(--muted);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .list .when {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .host {
+        font:
+          10px Silkscreen,
+          monospace;
+        padding: 1px 5px;
+        border: 1px solid var(--border);
+        margin-right: 6px;
+        color: var(--fg);
+      }
+      .empty {
+        color: var(--muted);
+        padding: 4px 14px 12px;
+        font-size: 13px;
+      }
+      .detail {
+        padding: 0 14px 14px;
+        display: grid;
+        gap: 10px;
+      }
+      .detail .big {
+        font-size: 15px;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 4px 10px;
+        font-size: 13px;
+      }
+      .kv dt {
+        color: var(--muted);
+      }
+      .kv dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .perm {
+        border: 2px solid var(--need);
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+      .perm b {
+        display: block;
+        margin-bottom: 2px;
+      }
+      .cmd {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .cmd code {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font:
+          12px ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        padding: 5px 8px;
+      }
+      .badge {
+        font:
+          10px Silkscreen,
+          monospace;
+        padding: 2px 6px;
+        color: #15131f;
+      }
+      .badge.need {
+        background: var(--need);
+      }
+      .badge.work {
+        background: var(--work);
+      }
+      .badge.idle {
+        background: var(--idle);
+      }
+      .badge.review {
+        background: var(--done);
+      }
+      .badge.sleep {
+        background: var(--sleep);
+      }
+      .badge.done {
+        background: var(--done);
+      }
+      #tip {
+        position: fixed;
+        pointer-events: none;
+        z-index: 10;
+        display: none;
+        max-width: 320px;
+        background: #15131f;
+        color: #ece8f6;
+        border: 2px solid #f2c14e;
+        padding: 6px 9px;
+        font-size: 12px;
+      }
+      #tip .t {
+        font-weight: 600;
+      }
+      #tip .s {
+        font:
+          10px Silkscreen,
+          monospace;
+        color: #c9c2e4;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+      }
+      .tabs button {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .tabs .alert {
+        background: var(--need);
+        color: #15131f;
+        padding: 0 4px;
+      }
+      .seg {
+        display: flex;
+        gap: 4px;
+        padding: 0 14px 8px;
+        flex-wrap: wrap;
+      }
+      .grp {
+        padding: 8px 14px 2px;
+        font:
+          11px Silkscreen,
+          monospace;
+        color: var(--muted);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+      }
+      .grp .n {
+        margin-left: auto;
+      }
+      .list li.child {
+        margin-left: 18px;
+      }
+      .list li.child::before {
+        content: "└";
+        position: absolute;
+        margin-left: -14px;
+        color: var(--muted);
+      }
+      .list li.closed {
+        opacity: 0.6;
+      }
+      .role {
+        font:
+          10px Silkscreen,
+          monospace;
+        padding: 1px 5px;
+        color: #15131f;
+        margin-right: 6px;
+      }
+      .role.none {
+        background: transparent;
+        color: var(--muted);
+        border: 1px dashed var(--border);
+      }
+      .wlabel {
+        font-size: 11px;
+        padding: 0 5px;
+        border: 1px solid;
+        margin-right: 6px;
+        border-radius: 8px;
+      }
+      .legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        padding: 0 14px 12px;
+      }
+      .leg {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+      }
+      .leg b {
+        font:
+          11px Silkscreen,
+          monospace;
+        font-weight: normal;
+      }
+      .leg small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .spr {
+        width: 48px;
+        height: 51px;
+        image-rendering: pixelated;
+        flex: none;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+      }
+      .banner {
+        margin: 16px 20px 0;
+        padding: 10px 14px;
+        border: 2px dashed var(--accent);
+        font:
+          11px Silkscreen,
+          monospace;
+      }
+      button.link {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--accent);
+        text-decoration: underline;
+        font: inherit;
+      }
+      .machines {
+        margin: 16px 20px 0;
+        padding-bottom: 12px;
+      }
+      .machines form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+        padding: 0 14px;
+      }
+      .machines label {
+        display: grid;
+        gap: 4px;
+        font:
+          10px Silkscreen,
+          monospace;
+        color: var(--muted);
+      }
+      .machines input {
+        font:
+          13px ui-monospace,
+          Menlo,
+          monospace;
+        padding: 6px 8px;
+        background: var(--panel-2);
+        color: var(--fg);
+        border: 2px solid var(--border);
+        min-width: 160px;
+      }
+      .machines input[name="link"] {
+        min-width: min(520px, 70vw);
+      }
+      .machines .help {
+        padding: 4px 14px 0;
+        color: var(--muted);
+        font-size: 13px;
+        max-width: 900px;
+      }
+      .machines .err {
+        color: var(--need);
+        width: 100%;
+        margin: 0;
+      }
+      .machine-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 6px 8px;
+      }
+      .machine-row .state {
+        margin-left: auto;
+        font:
+          10px Silkscreen,
+          monospace;
+      }
+      .boot {
+        padding: 40px;
+        text-align: center;
+        font:
+          12px "Press Start 2P",
+          monospace;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SCRANTON</h1>
+      <div class="tabs" id="hosts"></div>
+      <div class="counts" id="counts"></div>
+      <div class="spacer"></div>
+      <button id="btn-machines" aria-expanded="false">Machines</button>
+      <button
+        id="btn-asleep"
+        aria-pressed="false"
+        title="Show closed agents napping in the lounge"
+      >
+        Show closed
+      </button>
+      <button
+        id="btn-sound"
+        aria-pressed="false"
+        title="Chime and notify when an agent needs you"
+      >
+        Sound off
+      </button>
+    </header>
+    <div id="demo-banner" class="banner" hidden>
+      Demo data.
+      <button class="link" data-open-machines>Add a machine</button> to see your
+      own agents.
+    </div>
+    <section id="machines" class="card machines" hidden>
+      <h2>Machines</h2>
+      <ul class="list" id="machine-list"></ul>
+      <form id="machine-form" autocomplete="off">
+        <label
+          >Name
+          <input name="label" required maxlength="24" placeholder="Laptop"
+        /></label>
+        <label
+          >Pairing link
+          <input
+            name="link"
+            required
+            placeholder="https://app.paseo.sh/#offer=…"
+        /></label>
+        <button type="submit">Add</button>
+        <p class="err" id="machine-error" hidden></p>
+      </form>
+      <div class="help">
+        <p>
+          On each machine: install the Scranton plugin, then run
+          <code>paseo pair</code> (or open Settings → Pair a device in Paseo)
+          and paste the link here.
+        </p>
+        <p>
+          <b>A pairing link gives full control of that Paseo daemon.</b> It
+          stays in this browser's storage and is only used to open an end-to-end
+          encrypted connection through Paseo's relay. It is never sent to this
+          website. Only add links on a browser you trust, and remove them here
+          to forget them.
+        </p>
+      </div>
+    </section>
+    <main>
+      <section class="rooms" id="rooms">
+        <div class="boot">Booting office…</div>
+      </section>
+      <aside>
+        <div class="card" id="detail-card" hidden>
+          <h2>Selected <button id="detail-close" title="Close">✕</button></h2>
+          <div class="detail" id="detail"></div>
+        </div>
+        <div class="side">
+          <div class="card">
+            <h2>
+              <span class="dot need"></span>Needs you
+              <span class="n" id="n-need"></span>
+            </h2>
+            <ul class="list" id="l-need"></ul>
+          </div>
+          <div class="card">
+            <h2>
+              <span class="dot review"></span>Ready to review
+              <span class="n" id="n-review"></span>
+            </h2>
+            <ul class="list" id="l-review"></ul>
+          </div>
+          <div class="card">
+            <h2>Roles</h2>
+            <div class="legend" id="legend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Agents <span class="n" id="n-all"></span></h2>
+          <div class="seg" id="groupby">
+            <button data-by="project">By project</button
+            ><button data-by="role">By role</button
+            ><button data-by="state">By status</button>
+          </div>
+          <div id="groups"></div>
+        </div>
+      </aside>
+    </main>
+    <div id="tip"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

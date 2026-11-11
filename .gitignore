@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# SST
+.sst/
+sst-env.d.ts
+**/sst-env.d.ts
+
+# Build output
+packages/web/dist/
+packages/plugin/node_modules/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Git
+.worktrees/
+
+# Local Paseo plugin config (personal rules)
+roles.json
