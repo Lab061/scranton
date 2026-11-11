@@ -112,7 +112,7 @@ npx sst deploy --stage dev                                          # your own c
 
 With `DOMAIN` set, production serves that domain and any other stage serves `<stage>.<DOMAIN>`. A Route 53 hosted zone covering the domain must exist in the deploying account.
 
-Each stage also creates `github-actions-scranton-<stage>`, the IAM role GitHub Actions assumes through OIDC. Only a job running in the matching GitHub environment of this repository can assume it. Because a deploy creates the role CI uses, the first production deploy runs from a laptop with admin credentials.
+Each stage also creates `github-actions-scranton-<stage>`, the IAM role GitHub Actions assumes through OIDC. Only a job running in the matching GitHub environment of this repository can assume it. The trust uses the repository's immutable OIDC subject (`repo:<owner>@<id>/<repo>@<id>`); forks must set `GITHUB_OIDC_SUBJECT_PREFIX` to theirs, from `gh api repos/<owner>/<repo>/actions/oidc/customization/sub`. Because a deploy creates the role CI uses, the first production deploy runs from a laptop with admin credentials.
 
 GitHub Actions deploys `production` on every push to `master` (after the checks pass) and on manual dispatch. The `production` environment only accepts `master`. Configure:
 
