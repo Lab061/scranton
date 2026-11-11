@@ -1,12 +1,12 @@
 // The IAM role GitHub Actions assumes to deploy this stage, through the account's GitHub
 // OIDC provider: no access keys anywhere.
 //
-// Only a workflow job in the matching GitHub environment (`testing` or `production`) of
+// Only a workflow job in the matching GitHub environment (e.g. `production`) of
 // this repository gets a token the trust policy accepts. Pull requests, forks and other
 // repositories cannot assume it. The environments' branch rules decide which refs may
 // deploy, so keep those in place.
 //
-// The role CI uses is created by a deploy, so the first deploy of each stage runs from a
+// The role CI uses is created by a deploy, so the first deploy of a stage runs from a
 // laptop with admin credentials; CI takes over after that.
 const REPO = process.env.GITHUB_REPO || "Lab061/scranton";
 
