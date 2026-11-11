@@ -47,89 +47,101 @@ const ROLES = {
   orchestrator: {
     color: "#f2c14e",
     hint: "Coordinates other agents",
-    outfit: "suit, gold tie, headset",
+    outfit: "regional manager: suit, wide tie, mug",
   },
   triage: {
     color: "#ff8c42",
     hint: "Sorts incoming tickets and requests",
-    outfit: "hi-vis vest, clipboard",
+    outfit: "front desk: cardigan, phone",
   },
   "pr-triage": {
     color: "#1abc9c",
     hint: "Works review comments on one PR",
-    outfit: "mechanic overalls, wrench",
+    outfit: "QA: polo, lanyard badge",
   },
   "pr-review": {
     color: "#6c5ce7",
     hint: "Reviews someone else's PR",
-    outfit: "lab coat, glasses",
+    outfit: "QA lead: polo, badge, glasses",
   },
   build: {
     color: "#2ecc71",
     hint: "Implements a ticket or change",
-    outfit: "hard hat, tool belt",
+    outfit: "sales: short sleeves, tie, khakis",
   },
   investigate: {
     color: "#c8a165",
     hint: "Debugs prod or answers a data question",
-    outfit: "trench coat, fedora, magnifier",
+    outfit: "accounting: sweater vest, calculator",
   },
   ops: {
     color: "#3498db",
     hint: "Runs, deploys, migrates, maintains infra",
-    outfit: "jumpsuit, beanie",
+    outfit: "sales: blue shirt, tie, headset",
   },
   plan: {
     color: "#b18cff",
     hint: "Specs, plans, estimates, brainstorms",
-    outfit: "sweater, beret, blueprint",
+    outfit: "consultant: blazer, turtleneck, notebook",
   },
   comms: {
     color: "#fdcb6e",
     hint: "Drafts or answers emails and messages",
-    outfit: "postal cap, mail bag",
+    outfit: "HR: beige sweater, clipboard",
   },
   scheduler: {
     color: "#badc58",
     hint: "Started by a Paseo schedule (automatic)",
-    outfit: "robot: antenna, clock on chest",
+    outfit: "warehouse: hi-vis vest, hard hat",
   },
 };
 
 // Per-role uniforms, drawn over the base sprite. Coordinates are the 16x16 sprite box.
 const UNIFORMS = {
-  scheduler: {
-    shirt: "#a4b0be",
-    sleeve: "#747d8c",
-    pants: "#57606f",
+  // Regional manager: charcoal suit, wide red tie, coffee mug.
+  orchestrator: {
+    shirt: "#2f3542",
+    sleeve: "#262b36",
+    pants: "#2f3542",
     body: (P, v) => {
       if (v === "down") {
-        P(6, 8, 4, 3, "#ffffff");
-        P(7, 9, 1, 1, "#2d3436");
-        P(8, 9, 1, 1, "#2d3436");
-        P(8, 8, 1, 1, "#2d3436");
-        P(4, 11, 8, 1, "#badc58");
-      } else P(4, 9, 8, 1, "#badc58");
+        P(6, 8, 4, 1, "#f1f2f6");
+        P(7, 8, 2, 1, "#e74c3c");
+        P(7, 9, 2, 3, "#c0392b");
+        P(5, 8, 1, 2, "#3d4453");
+        P(10, 8, 1, 2, "#3d4453");
+      } else if (v !== "up") P(v === "left" ? 5 : 9, 8, 2, 1, "#f1f2f6");
     },
-    hat: (P, v) => {
-      P(7, -2, 2, 1, "#ff4757");
-      P(7, -1, 1, 2, "#747d8c");
+    prop: (P) => {
+      P(12, 9, 3, 3, "#f5f6fa");
+      P(15, 10, 1, 1, "#f5f6fa");
+      P(12, 9, 3, 1, "#6d4c41");
+    },
+  },
+  // Sales floor: white short-sleeve shirt, blue tie, khakis.
+  build: {
+    shirt: "#f1f2f6",
+    sleeve: "#dfe4ea",
+    pants: "#c8b48a",
+    shortSleeves: true,
+    body: (P, v) => {
       if (v === "down") {
-        P(3, 3, 1, 2, "#747d8c");
-        P(12, 3, 1, 2, "#747d8c");
+        P(7, 8, 2, 1, "#1e3a6e");
+        P(7, 9, 2, 2, "#2f5f9e");
       }
     },
   },
-  orchestrator: {
-    shirt: "#2c3e50",
-    sleeve: "#243342",
-    pants: "#2c3e50",
+  // Sales floor, on the phones: light blue shirt, dark tie, headset.
+  ops: {
+    shirt: "#a7c5eb",
+    sleeve: "#93b4dd",
+    pants: "#b9a77d",
+    shortSleeves: true,
     body: (P, v) => {
       if (v === "down") {
-        P(6, 8, 4, 1, "#ecf0f1");
-        P(7, 9, 2, 2, "#f2c14e");
-        P(7, 11, 2, 1, "#c99a2e");
-      } else if (v !== "up") P(v === "left" ? 5 : 9, 8, 2, 1, "#ecf0f1");
+        P(7, 8, 2, 1, "#1e272e");
+        P(7, 9, 2, 2, "#2d3436");
+      }
     },
     hat: (P, v) => {
       P(4, 0, 8, 1, "#111");
@@ -138,10 +150,118 @@ const UNIFORMS = {
       if (v === "down") P(4, 6, 2, 1, "#111");
     },
   },
+  // Front desk: pink cardigan over a white blouse, phone handset.
   triage: {
+    shirt: "#e8a0bf",
+    sleeve: "#d98cb0",
+    pants: "#3d3d5c",
+    body: (P, v) => {
+      if (v === "down") {
+        P(6, 8, 4, 4, "#f5f6fa");
+        P(7, 9, 1, 1, "#d98cb0");
+        P(7, 11, 1, 1, "#d98cb0");
+      }
+    },
+    prop: (P) => {
+      P(12, 3, 1, 4, "#2d3436");
+      P(13, 3, 1, 1, "#2d3436");
+      P(13, 6, 1, 1, "#2d3436");
+    },
+  },
+  // Accounting: olive sweater vest over a white shirt, glasses, calculator.
+  investigate: {
+    shirt: "#6b7a3a",
+    sleeve: "#e5e7ec",
+    pants: "#57606f",
+    glasses: true,
+    body: (P, v) => {
+      if (v === "down") {
+        P(6, 8, 1, 1, "#f5f6fa");
+        P(9, 8, 1, 1, "#f5f6fa");
+        P(6, 9, 1, 1, "#8a9a4a");
+        P(9, 10, 1, 1, "#8a9a4a");
+        P(7, 10, 1, 1, "#8a9a4a");
+      }
+    },
+    prop: (P) => {
+      P(12, 9, 3, 4, "#dfe4ea");
+      P(12, 9, 3, 1, "#7bed9f");
+      P(12, 11, 1, 1, "#57606f");
+      P(14, 11, 1, 1, "#57606f");
+      P(13, 12, 1, 1, "#57606f");
+    },
+  },
+  // HR: beige sweater, white collar, clipboard.
+  comms: {
+    shirt: "#d8c3a5",
+    sleeve: "#c7b08e",
+    pants: "#6b5b4b",
+    body: (P, v) => {
+      if (v === "down") P(6, 8, 4, 1, "#f5f6fa");
+    },
+    prop: (P) => {
+      P(12, 8, 3, 5, "#8d5a3b");
+      P(12, 9, 3, 3, "#ffffff");
+      P(13, 8, 1, 1, "#b2bec3");
+    },
+  },
+  // Quality assurance lead: light blue polo, lanyard and badge, glasses.
+  "pr-review": {
+    shirt: "#9ec5e8",
+    sleeve: "#8ab4da",
+    pants: "#2c3e50",
+    glasses: true,
+    shortSleeves: true,
+    body: (P, v) => {
+      if (v === "down") {
+        P(6, 8, 4, 1, "#7fa6cc");
+        P(5, 8, 1, 1, "#c0392b");
+        P(6, 9, 1, 1, "#c0392b");
+        P(10, 8, 1, 1, "#c0392b");
+        P(9, 9, 1, 1, "#c0392b");
+        P(7, 10, 2, 2, "#ffffff");
+        P(7, 10, 2, 1, "#c0392b");
+      }
+    },
+  },
+  // Quality assurance: green polo, lanyard and badge.
+  "pr-triage": {
+    shirt: "#7fbf7f",
+    sleeve: "#6aa86a",
+    pants: "#3d4a5c",
+    shortSleeves: true,
+    body: (P, v) => {
+      if (v === "down") {
+        P(6, 8, 4, 1, "#5f9e5f");
+        P(5, 8, 1, 1, "#2f5f9e");
+        P(6, 9, 1, 1, "#2f5f9e");
+        P(10, 8, 1, 1, "#2f5f9e");
+        P(9, 9, 1, 1, "#2f5f9e");
+        P(7, 10, 2, 2, "#ffffff");
+        P(7, 10, 2, 1, "#2f5f9e");
+      }
+    },
+  },
+  // Consultant from corporate: grey blazer, black turtleneck, notebook.
+  plan: {
+    shirt: "#7f8c8d",
+    sleeve: "#6c7a7b",
+    pants: "#2d3436",
+    body: (P, v) => {
+      if (v === "down") P(6, 8, 4, 4, "#2d3436");
+      if (v === "up") P(6, 8, 4, 1, "#2d3436");
+    },
+    prop: (P) => {
+      P(12, 9, 2, 4, "#2f3640");
+      P(13, 9, 1, 4, "#f5f6fa");
+    },
+  },
+  // Warehouse: grey tee, hi-vis vest, hard hat, jeans.
+  scheduler: {
     shirt: "#95a5a6",
     sleeve: "#7f8c8d",
-    pants: "#34495e",
+    pants: "#3b5b92",
+    shortSleeves: true,
     body: (P, v) => {
       if (v === "down") {
         P(4, 8, 3, 4, "#ff8c42");
@@ -153,149 +273,11 @@ const UNIFORMS = {
         P(4, 10, 8, 1, "#f9f871");
       }
     },
-    prop: (P) => {
-      P(12, 9, 3, 4, "#8d6e63");
-      P(12, 10, 3, 2, "#ffffff");
-      P(13, 9, 1, 1, "#b2bec3");
-    },
-  },
-  "pr-triage": {
-    shirt: "#ecf0f1",
-    sleeve: "#dfe6e9",
-    pants: "#16a085",
-    body: (P, v) => {
-      P(4, 9, 8, 3, "#1abc9c");
-      if (v === "down" || v === "up") {
-        P(5, 8, 1, 1, "#1abc9c");
-        P(10, 8, 1, 1, "#1abc9c");
-      }
-      if (v === "down") P(6, 10, 4, 1, "#16a085");
-    },
-    prop: (P) => {
-      P(13, 10, 1, 3, "#b2bec3");
-      P(12, 9, 1, 1, "#b2bec3");
-      P(14, 9, 1, 1, "#b2bec3");
-      P(13, 9, 1, 1, "#636e72");
-    },
-  },
-  "pr-review": {
-    shirt: "#f5f6fa",
-    sleeve: "#e4e6ef",
-    pants: "#2d3436",
-    glasses: true,
-    body: (P, v) => {
-      if (v === "down") {
-        P(7, 8, 2, 4, "#6c5ce7");
-        P(5, 10, 1, 1, "#74b9ff");
-      }
-      P(4, 12, 8, 1, "#f5f6fa");
-    },
-  },
-  build: {
-    shirt: "#2ecc71",
-    sleeve: "#27ae60",
-    pants: "#3b5b92",
-    body: (P, v) => {
-      P(4, 11, 8, 1, "#8d5a3b");
-      if (v === "down") P(7, 11, 2, 1, "#f9ca24");
-      if (v === "left") P(9, 11, 2, 2, "#636e72");
-      if (v === "right") P(5, 11, 2, 2, "#636e72");
-    },
     hat: (P, v) => {
       P(4, 0, 8, 2, "#f9ca24");
       P(5, 0, 6, 1, "#ffe066");
       P(3, 2, 10, 1, "#e1b12c");
       if (v === "down") P(7, 0, 2, 1, "#fff3b0");
-    },
-  },
-  investigate: {
-    shirt: "#c8a165",
-    sleeve: "#b08a50",
-    pants: "#4b3b2f",
-    body: (P, v) => {
-      P(4, 10, 8, 1, "#7b5e3b");
-      if (v === "down") {
-        P(5, 8, 2, 1, "#a67f45");
-        P(9, 8, 2, 1, "#a67f45");
-        P(7, 8, 2, 2, "#2d3436");
-      }
-      P(4, 12, 8, 1, "#c8a165");
-    },
-    hat: (P) => {
-      P(5, -1, 6, 2, "#5d4037");
-      P(5, 0, 6, 1, "#222");
-      P(3, 1, 10, 1, "#4e342e");
-    },
-    prop: (P) => {
-      P(12, 7, 3, 3, "#b2bec3");
-      P(13, 8, 1, 1, "#dff9fb");
-      P(12, 10, 1, 2, "#6d4c41");
-    },
-  },
-  ops: {
-    shirt: "#2f6fd6",
-    sleeve: "#2658b0",
-    pants: "#2f6fd6",
-    body: (P, v) => {
-      if (v === "down") {
-        P(8, 8, 1, 4, "#5a8dee");
-        P(5, 9, 2, 1, "#ffffff");
-      }
-      if (v === "up") P(4, 9, 8, 1, "#f9f871");
-      P(4, 11, 8, 1, "#2658b0");
-    },
-    hat: (P) => {
-      P(4, 0, 8, 2, "#34495e");
-      P(4, 2, 8, 1, "#2c3e50");
-      P(7, -1, 2, 1, "#e74c3c");
-    },
-  },
-  plan: {
-    shirt: "#b18cff",
-    sleeve: "#9b72f0",
-    pants: "#2d3436",
-    body: (P, v) => {
-      if (v === "down") {
-        P(7, 8, 2, 1, "#ffffff");
-        P(5, 10, 1, 1, "#ffffff");
-        P(10, 10, 1, 1, "#ffffff");
-        P(7, 10, 2, 1, "#8e6be0");
-      }
-    },
-    hat: (P) => {
-      P(4, 0, 7, 2, "#2d3436");
-      P(10, 1, 2, 1, "#2d3436");
-      P(7, -1, 1, 1, "#2d3436");
-    },
-    prop: (P) => {
-      P(12, 8, 2, 4, "#74b9ff");
-      P(12, 8, 2, 1, "#dff9fb");
-      P(12, 11, 2, 1, "#4a90d9");
-    },
-  },
-  comms: {
-    shirt: "#fdcb6e",
-    sleeve: "#e5b456",
-    pants: "#2c3e7a",
-    body: (P, v) => {
-      if (v === "down" || v === "up") {
-        P(4, 8, 1, 1, "#6d4c41");
-        P(5, 9, 1, 1, "#6d4c41");
-        P(6, 10, 1, 1, "#6d4c41");
-        P(7, 11, 1, 1, "#6d4c41");
-      }
-      if (v !== "up") {
-        P(9, 11, 4, 3, "#8d5a3b");
-        P(9, 11, 4, 1, "#a66d48");
-        P(10, 12, 2, 1, "#f2c14e");
-      }
-    },
-    hat: (P, v) => {
-      P(4, 0, 8, 2, "#2c3e7a");
-      P(7, 0, 2, 1, "#f2c14e");
-      if (v === "down") P(4, 2, 8, 1, "#1f2d5a");
-      if (v === "left") P(2, 2, 5, 1, "#1f2d5a");
-      if (v === "right") P(9, 2, 5, 1, "#1f2d5a");
     },
   },
 };
@@ -580,6 +562,10 @@ function buildRoom(label) {
   block(22, 9); // beanbags
   block(23, 9); // plant (23,10 is the way east)
   block(14, 11); // help sign
+  block(12, 3); // copier
+  block(14, 3); // water cooler
+  block(0, 13); // paper boxes
+  block(0, 14);
   const slots = [
     meetingGeom(0),
     meetingGeom(1),
@@ -600,6 +586,7 @@ function buildRoom(label) {
     block(x0 + 7, 5);
     block(x0 + 7, 6); // whiteboard
     block(x0 + 1, 3); // plant
+    block(x0 + 1, 6); // TV on a cart
   }
   for (const sl of slots.filter((x) => x.kind === "booth")) {
     const x0 = sl.x0;
@@ -864,6 +851,37 @@ function paintRoom(room) {
   R(14 * T + 1, 11 * T - 4, 14, 1, "#e0b04a");
   R(14 * T + 7, 11 * T - 2, 2, 5, "#d32f2f");
   R(14 * T + 7, 11 * T + 4, 2, 2, "#d32f2f");
+  // paper-company details: copier, water cooler, boxes of copy paper
+  {
+    const X = 12 * T,
+      Y = 3 * T;
+    R(X + 1, Y + 2, 14, 13, "#b2bec3");
+    R(X + 1, Y + 2, 14, 3, "#dfe6e9");
+    R(X + 3, Y + 6, 10, 2, "#ffffff");
+    R(X + 3, Y + 10, 10, 3, "#95a5a6");
+    R(X + 12, Y + 3, 1, 1, "#2ecc71");
+  }
+  {
+    const X = 14 * T,
+      Y = 3 * T;
+    R(X + 4, Y + 7, 8, 8, "#dfe6e9");
+    R(X + 4, Y + 14, 8, 1, "#b2bec3");
+    R(X + 5, Y - 1, 6, 8, "#74b9ff");
+    R(X + 6, Y, 1, 6, "#a6d4ff");
+    R(X + 5, Y + 9, 2, 2, "#ff7675");
+    R(X + 9, Y + 9, 2, 2, "#0984e3");
+  }
+  for (const [ty, w] of [
+    [13, 14],
+    [14, 13],
+  ]) {
+    const X = 1,
+      Y = ty * T + 2;
+    R(X, Y, w, 12, "#c8a165");
+    R(X, Y, w, 2, "#d9b77a");
+    R(X + 5, Y, 3, 12, "#b08a50");
+    R(X + 2, Y + 5, 4, 3, "#f5f6fa");
+  }
   // east wing: meeting rooms, corridor, booths
   R(WING_X * T, 3 * T, (W - WING_X) * T, 12 * T, "#a97a4f");
   for (let tx = WING_X; tx < W; tx++) {
@@ -907,6 +925,15 @@ function paintRoom(room) {
       R(PX + 4, PY + 9, 8, 6, "#8d5a3b");
       R(PX + 2, PY + 2, 12, 8, "#2e7d32");
       R(PX + 4, PY, 8, 3, "#43a047");
+      // TV on a cart
+      const TX = X + T,
+        TY = 6 * T;
+      R(TX + 3, TY + 10, 1, 5, "#636e72");
+      R(TX + 12, TY + 10, 1, 5, "#636e72");
+      R(TX + 2, TY + 9, 12, 2, "#7f8c8d");
+      R(TX + 1, TY - 1, 14, 10, "#2d3436");
+      R(TX + 2, TY, 12, 8, "#3a4a6b");
+      R(TX + 3, TY + 1, 4, 1, "#5f7aa8");
       R(sl.plate.x - 2, sl.plate.y - 2, sl.plate.w + 4, 14, "#2b2d42");
     } else {
       R(X, 11 * T, T / 2, 4 * T, "#3d4060");
@@ -996,6 +1023,18 @@ function drawChar(P, look, o) {
     P(12, 8, 1, 3, shirtD);
     P(3, 11 + sw, 1, 1, skin);
     P(12, 11 - sw, 1, 1, skin);
+  }
+  if (U && U.shortSleeves) {
+    if (type) {
+      P(3, 9, 1, 1, skin);
+      P(12, 9, 1, 1, skin);
+    } else if (view === "left" || view === "right") {
+      const sws = walk ? (step === 1 ? -1 : step === 3 ? 1 : 0) : 0;
+      P(7 + sws, 10, 2, 1, skin);
+    } else {
+      P(3, 9, 1, 2, skin);
+      P(12, 9, 1, 2, skin);
+    }
   }
   // head
   P(4, 2, 8, 6, skin);
