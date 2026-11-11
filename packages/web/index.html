@@ -163,6 +163,20 @@
         border-color: var(--accent);
         color: var(--accent);
       }
+      .site-footer {
+        padding: 8px 20px 24px;
+        text-align: center;
+        font:
+          10px Silkscreen,
+          monospace;
+        color: var(--muted);
+      }
+      .site-footer a {
+        color: var(--muted);
+      }
+      .site-footer a:hover {
+        color: var(--accent);
+      }
       main {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -702,6 +716,17 @@
         </div>
       </aside>
     </main>
+    <footer class="site-footer">
+      © <span id="footer-year">2026</span>
+      <a href="https://lab061.com.br" target="_blank" rel="noopener">Lab061</a>
+      ·
+      <a
+        href="https://github.com/Lab061/scranton"
+        target="_blank"
+        rel="noopener"
+        >Source on GitHub</a
+      >
+    </footer>
     <div id="tip"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
