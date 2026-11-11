@@ -8,7 +8,14 @@
 //
 // The role CI uses is created by a deploy, so the first deploy of a stage runs from a
 // laptop with admin credentials; CI takes over after that.
-const REPO = process.env.GITHUB_REPO || "Lab061/scranton";
+// GitHub gives this repository an immutable OIDC subject, which carries the owner and
+// repository IDs (`repo:<owner>@<owner-id>/<repo>@<repo-id>`). Trusting it, instead of the
+// plain `repo:<owner>/<repo>` form, means a different repository later created under the
+// same name cannot assume the role. Read the prefix with:
+//   gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix
+const SUBJECT_PREFIX =
+  process.env.GITHUB_OIDC_SUBJECT_PREFIX ||
+  "repo:Lab061@139712276/scranton@1453375673";
 
 export function githubDeployRole() {
   const account = aws.getCallerIdentityOutput({}).accountId;
@@ -27,7 +34,7 @@ export function githubDeployRole() {
           Condition: {
             StringEquals: {
               "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-              "token.actions.githubusercontent.com:sub": `repo:${REPO}:environment:${$app.stage}`,
+              "token.actions.githubusercontent.com:sub": `${SUBJECT_PREFIX}:environment:${$app.stage}`,
             },
           },
         },
