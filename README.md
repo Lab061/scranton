@@ -96,15 +96,15 @@ The first argument is anything `paseo --host` accepts, including a pairing link.
 The page deploys as a static site (S3 + CloudFront) with [SST v3](https://sst.dev). The hosted copy lives at **https://scranton.lab061.com.br**.
 
 ```bash
-npx sst deploy --stage testing                                     # CloudFront URL
-DOMAIN=scranton.example.com npx sst deploy --stage production      # https://scranton.example.com
+DOMAIN=scranton.lab061.com.br npx sst deploy --stage production   # https://scranton.lab061.com.br
+npx sst deploy --stage dev                                          # your own copy, on a CloudFront URL
 ```
 
-With `DOMAIN` set, production serves that domain and other stages serve `<stage>.<DOMAIN>`. A Route 53 hosted zone covering the domain must exist in the deploying account.
+With `DOMAIN` set, production serves that domain and any other stage serves `<stage>.<DOMAIN>`. A Route 53 hosted zone covering the domain must exist in the deploying account.
 
-Each stage also creates `github-actions-scranton-<stage>`, the IAM role GitHub Actions assumes through OIDC. Only a job running in the matching GitHub environment of this repository can assume it. Because a deploy creates the role CI uses, the first deploy of each stage runs from a laptop with admin credentials.
+Each stage also creates `github-actions-scranton-<stage>`, the IAM role GitHub Actions assumes through OIDC. Only a job running in the matching GitHub environment of this repository can assume it. Because a deploy creates the role CI uses, the first production deploy runs from a laptop with admin credentials.
 
-GitHub Actions deploys `testing` on every push to `master` and `production` when a release is published. Configure:
+GitHub Actions deploys `production` on every push to `master` (after the checks pass) and on manual dispatch. The `production` environment only accepts `master`. Configure:
 
 | Kind                | Name           | Value                                                    |
 | ------------------- | -------------- | -------------------------------------------------------- |
