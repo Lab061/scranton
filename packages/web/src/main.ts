@@ -1,4 +1,7 @@
-import "./office.js";
-import { setupMachines } from "./machines.ts";
+import { initAnalytics } from "./analytics.ts";
 
+initAnalytics();
+
+await import("./office.js");
+const { setupMachines } = await import("./machines.ts");
 setupMachines();

@@ -25,4 +25,5 @@ node packages/plugin/scripts/dev.mjs <connection> install|reload|call|logs
 - The snapshot is read-only. The only write the plugin makes is the `role`/`role-source` label, and only when no role is set.
 - The page must keep working with no machines (demo data) and with unreachable machines (last good snapshot plus an error).
 - Keep the Content Security Policy in `packages/web/vite.config.ts` tight: new network destinations need a reason.
+- Analytics go through `packages/web/src/analytics.ts` only, as explicit `track()` calls with counts, states, built-in role names and categories. Never send text the office displays (agent, workspace, project, machine or custom role names, prompts, paths, pairing links), and never turn on autocapture or session recording. Update the README's Analytics section when events change.
 - Sprites and the office are drawn in code. Do not add art, names or logos from existing games or TV shows.

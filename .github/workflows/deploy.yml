@@ -61,3 +61,5 @@ jobs:
         run: npx sst deploy --stage production
         env:
           DOMAIN: ${{ vars.DOMAIN }}
+          POSTHOG_KEY: ${{ vars.POSTHOG_KEY }}
+          POSTHOG_HOST: ${{ vars.POSTHOG_HOST }}

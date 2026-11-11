@@ -1,6 +1,11 @@
 // The office: canvas rendering, movement and the sidebar. Data comes from ./hosts.ts.
 import { fetchState } from "./hosts.ts";
 import { showMachineStatus } from "./machines.ts";
+import { bucket, setContext, track } from "./analytics.ts";
+
+/** Built-in role names are safe to report; custom ones may name a client or project. */
+const roleForAnalytics = (role) =>
+  !role ? "untagged" : ROLES[role] ? role : "custom";
 
 const POLL_MS = 3000;
 // ---------------------------------------------------------------- constants
@@ -1145,6 +1150,8 @@ function ensureRoom(host, project, count) {
 }
 
 function showHost(label) {
+  if (label !== currentHost)
+    track("machine_tab_switched", { machines: hostsData.length });
   currentHost = label;
   storeSet("office.host", label);
   if (selected && selected.hostLabel !== label) selected = null;
@@ -1862,7 +1869,7 @@ function attachPointer(room) {
   });
   cv.addEventListener("click", (ev) => {
     const e = hit(ev);
-    select(e ? e.key : null);
+    select(e ? e.key : null, "office");
   });
 }
 
@@ -1878,8 +1885,16 @@ function findEnt(key) {
   return null;
 }
 
-function select(key) {
+function select(key, source = "sidebar") {
   selected = key ? findEnt(key) : null;
+  if (selected && selected.agent)
+    track("agent_selected", {
+      source,
+      state: selected.agent.state,
+      role: roleForAnalytics(roleOf(selected.agent)),
+      is_subagent: Boolean(selected.agent.isSub),
+      is_manager: Boolean(selected.agent.team && selected.agent.team.length),
+    });
   renderSidebar();
 }
 
@@ -2150,6 +2165,7 @@ document.getElementById("groupby").addEventListener("click", (ev) => {
   if (b) {
     groupBy = b.dataset.by;
     storeSet("office.groupBy", groupBy);
+    track("agents_grouped", { group_by: groupBy });
     renderSidebar();
   }
 });
@@ -2162,6 +2178,9 @@ document.querySelector("aside").addEventListener("click", (ev) => {
   const copy = ev.target.closest("[data-copy]");
   if (copy) {
     navigator.clipboard.writeText(copy.dataset.copy);
+    track("command_copied", {
+      command: (copy.dataset.copy.match(/paseo (\w+)/) || [])[1] || "other",
+    });
     copy.textContent = "Copied";
     setTimeout(() => (copy.textContent = "Copy"), 1200);
     return;
@@ -2220,6 +2239,7 @@ function checkAlerts(hosts) {
 }
 document.getElementById("btn-sound").addEventListener("click", (ev) => {
   soundOn = !soundOn;
+  track("alerts_toggled", { enabled: soundOn });
   ev.target.setAttribute("aria-pressed", soundOn);
   ev.target.textContent = soundOn ? "Sound on" : "Sound off";
   if (soundOn) {
@@ -2230,6 +2250,7 @@ document.getElementById("btn-sound").addEventListener("click", (ev) => {
 });
 document.getElementById("btn-asleep").addEventListener("click", (ev) => {
   showAsleep = !showAsleep;
+  track("closed_agents_toggled", { shown: showAsleep });
   ev.target.setAttribute("aria-pressed", showAsleep);
   ev.target.textContent = showAsleep ? "Hide closed" : "Show closed";
   for (const r of rooms.values())
@@ -2244,11 +2265,43 @@ document.getElementById("btn-asleep").addEventListener("click", (ev) => {
 });
 
 // ---------------------------------------------------------------- loop
+/** Once per page load: what the visitor is looking at, in counts and states only. */
+let loadReported = false;
+function reportLoad(data) {
+  const live = data.hosts.filter((h) => h.ok);
+  const agents = data.hosts.flatMap((h) => h.agents || []);
+  setContext({
+    mode: data.demo ? "demo" : "live",
+    machines: data.demo ? 0 : data.hosts.length,
+  });
+  if (
+    loadReported ||
+    (!data.demo && !live.length && data.hosts.some((h) => !h.error))
+  )
+    return;
+  loadReported = true;
+  const count = (state) =>
+    bucket(agents.filter((a) => a.state === state).length);
+  track("office_loaded", {
+    mode: data.demo ? "demo" : "live",
+    machines: data.demo ? 0 : data.hosts.length,
+    machines_reachable: data.demo ? 0 : live.length,
+    agents: bucket(agents.length),
+    needs_input: count("needs_input"),
+    ready_to_review: count("review"),
+    working: count("working"),
+    teams: bucket(
+      agents.filter((a) => (a.subagents || []).some((x) => x.active)).length
+    ),
+  });
+}
+
 async function poll() {
   try {
     const data = await fetchState();
     document.getElementById("demo-banner").hidden = !data.demo;
     showMachineStatus(data.hosts);
+    reportLoad(data);
     if (data.hosts.length) {
       hostsData = data.hosts;
       if (!hostsData.some((h) => h.label === currentHost))
