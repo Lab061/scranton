@@ -84,7 +84,7 @@ Requires Node 24 (`nvm use`).
 ```bash
 npm install
 npm run dev          # the page on http://localhost:5173 (demo data until you add a machine)
-npm test             # plugin tests
+npm test             # plugin and web tests
 npm run typecheck
 npm run format:fix
 ```

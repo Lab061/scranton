@@ -87,7 +87,7 @@ export function removeMachine(id: string) {
   write(STORE_KEY, memory);
   const c = clients.get(id);
   clients.delete(id);
-  c?.client.close?.().catch(() => {});
+  if (c) dispose(c);
   lastGood.delete(id);
 }
 
@@ -108,10 +108,11 @@ let clientModule: Promise<
 const loadClient = () =>
   (clientModule ??= import("@getpaseo/client/internal/daemon-client"));
 
-const clients = new Map<
-  string,
-  { client: DaemonClient; ready: Promise<void> }
->();
+type Entry = { client: DaemonClient; ready: Promise<void> };
+// Stored as a promise, set before the first await, so overlapping reads share one connection.
+const clients = new Map<string, Promise<Entry>>();
+const dispose = (entry: Promise<Entry>) =>
+  entry.then(({ client }) => client.close?.()).catch(() => {});
 const lastGood = new Map<string, HostState>();
 // Report each machine's first connection and first failure once per page load.
 const reported = new Set<string>();
@@ -123,21 +124,23 @@ function errorCategory(msg: string) {
   return "other";
 }
 
-async function clientFor(m: Machine) {
+function clientFor(m: Machine): Promise<Entry> {
   let entry = clients.get(m.id);
   if (!entry) {
-    const target = validateLink(m.link);
-    const { DaemonClient } = await loadClient();
-    const client = new DaemonClient({
-      url: target.url,
-      clientId,
-      clientType: "browser",
-      e2ee: {
-        enabled: true,
-        daemonPublicKeyB64: target.offer.daemonPublicKeyB64,
-      },
-    });
-    entry = { client, ready: client.connect() };
+    entry = (async () => {
+      const target = validateLink(m.link);
+      const { DaemonClient } = await loadClient();
+      const client = new DaemonClient({
+        url: target.url,
+        clientId,
+        clientType: "browser",
+        e2ee: {
+          enabled: true,
+          daemonPublicKeyB64: target.offer.daemonPublicKeyB64,
+        },
+      });
+      return { client, ready: client.connect() };
+    })();
     clients.set(m.id, entry);
   }
   return entry;
@@ -169,15 +172,25 @@ function explain(err: unknown): string {
  * connected while every request on it hangs. Last good snapshots are kept.
  */
 export function resetConnections() {
-  for (const { client } of clients.values()) client.close?.().catch(() => {});
+  for (const entry of clients.values()) dispose(entry);
   clients.clear();
 }
 
+/**
+ * Ask each open connection to prove it is alive (a short ping); the Paseo client reconnects on
+ * its own when the ping fails. Cheap enough to run on every return to the tab.
+ */
+export function verifyConnections() {
+  for (const entry of clients.values())
+    entry
+      .then(({ client }) => client.ensureConnected?.({ verify: true }))
+      .catch(() => {});
+}
+
 async function readMachine(m: Machine): Promise<HostState> {
-  let entry: Awaited<ReturnType<typeof clientFor>> | undefined;
+  const entry = clientFor(m);
   try {
-    entry = await clientFor(m);
-    const { client, ready } = entry;
+    const { client, ready } = await entry;
     await timeout(ready, RPC_TIMEOUT_MS, "Connecting");
     const snap = (await timeout(
       client.invokePluginRpc(PLUGIN_ID, "office.snapshot", {}),
@@ -198,12 +211,14 @@ async function readMachine(m: Machine): Promise<HostState> {
     return state;
   } catch (err) {
     // Drop the client so the next poll reconnects from scratch; keep showing the last data.
-    // Only if it is still the one this read used: a reset may already have replaced it.
-    if (entry && clients.get(m.id) === entry) clients.delete(m.id);
-    entry?.client.close?.().catch(() => {});
+    // Only if it is still the one this read used: a reset may already have replaced it, and
+    // then this failure is the page's own doing, not the machine's, so it is not reported.
+    const current = clients.get(m.id) === entry;
+    if (current) clients.delete(m.id);
+    dispose(entry);
     const prev = lastGood.get(m.id);
     const error = explain(err);
-    if (!reported.has(m.id + ":err")) {
+    if (current && !reported.has(m.id + ":err")) {
       reported.add(m.id + ":err");
       const reason = errorCategory(error);
       track("machine_unreachable", { reason, had_data: Boolean(prev) });
