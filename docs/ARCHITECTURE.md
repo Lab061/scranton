@@ -4,7 +4,7 @@
 
 1. The page keeps a list of machines (`label` + pairing link) in `localStorage` (`packages/web/src/hosts.ts`).
 2. For each machine it opens a `DaemonClient` from `@getpaseo/client` with `clientType: "browser"`: `parseHostTarget(link)` gives the relay URL and the daemon's public key, and the client encrypts end to end through Paseo's relay. The client is loaded lazily, so the demo page stays small.
-3. Every 3 seconds it calls `invokePluginRpc("scranton", "office.snapshot", {})` on each machine and keeps the last good snapshot when one is unreachable.
+3. Every 3 seconds it calls `invokePluginRpc("scranton", "office.snapshot", {})` on each machine and keeps the last good snapshot when one is unreachable. When the tab comes back after 20 s or more in the background (or with a machine offline), from the back/forward cache, or back online, it closes every connection and polls at once: browsers, Safari above all, drop a background tab's sockets without telling the client.
 4. `packages/web/src/office.js` turns snapshots into rooms, desks and characters.
 
 ## The snapshot

@@ -1,5 +1,5 @@
 // The office: canvas rendering, movement and the sidebar. Data comes from ./hosts.ts.
-import { fetchState } from "./hosts.ts";
+import { fetchState, resetConnections } from "./hosts.ts";
 import { showMachineStatus } from "./machines.ts";
 import { bucket, setContext, track } from "./analytics.ts";
 
@@ -2335,9 +2335,16 @@ function reportLoad(data) {
   });
 }
 
+// A poll stuck on a dead connection must not hold up a fresh one, so each poll carries a
+// generation and only the latest one applies its result and schedules the next.
+let pollGen = 0;
+let pollTimer = null;
 async function poll() {
+  const gen = ++pollGen;
+  clearTimeout(pollTimer);
   try {
     const data = await fetchState();
+    if (gen !== pollGen) return;
     document.getElementById("demo-banner").hidden = !data.demo;
     showMachineStatus(data.hosts);
     reportLoad(data);
@@ -2362,8 +2369,31 @@ async function poll() {
   } catch (err) {
     console.warn("poll failed", err);
   }
-  setTimeout(poll, POLL_MS);
+  if (gen === pollGen) pollTimer = setTimeout(poll, POLL_MS);
 }
+
+// Coming back to a tab that sat in the background: its sockets may be dead without the
+// client knowing (Safari closes them silently). Reconnect and refresh right away instead of
+// waiting for the next poll to time out.
+const STALE_AFTER_MS = 20_000;
+let hiddenAt = document.hidden ? performance.now() : null;
+function reconnectIfStale(force) {
+  const away = hiddenAt === null ? 0 : performance.now() - hiddenAt;
+  hiddenAt = null;
+  if (!force && away < STALE_AFTER_MS && hostsData.every((h) => h.ok)) return;
+  resetConnections();
+  poll();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenAt = performance.now();
+  else reconnectIfStale(false);
+});
+// Restored from the back/forward cache: every socket was closed while the page was frozen.
+window.addEventListener(
+  "pageshow",
+  (ev) => ev.persisted && reconnectIfStale(true)
+);
+window.addEventListener("online", () => reconnectIfStale(true));
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);

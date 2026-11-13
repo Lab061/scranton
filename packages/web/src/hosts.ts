@@ -163,9 +163,21 @@ function explain(err: unknown): string {
   return msg.replace(/^Request failed:\s*/, "");
 }
 
+/**
+ * Close every daemon connection so the next read opens fresh ones. Browsers (Safari above all)
+ * can drop a background tab's sockets without a close event, which leaves the client looking
+ * connected while every request on it hangs. Last good snapshots are kept.
+ */
+export function resetConnections() {
+  for (const { client } of clients.values()) client.close?.().catch(() => {});
+  clients.clear();
+}
+
 async function readMachine(m: Machine): Promise<HostState> {
+  let entry: Awaited<ReturnType<typeof clientFor>> | undefined;
   try {
-    const { client, ready } = await clientFor(m);
+    entry = await clientFor(m);
+    const { client, ready } = entry;
     await timeout(ready, RPC_TIMEOUT_MS, "Connecting");
     const snap = (await timeout(
       client.invokePluginRpc(PLUGIN_ID, "office.snapshot", {}),
@@ -186,9 +198,9 @@ async function readMachine(m: Machine): Promise<HostState> {
     return state;
   } catch (err) {
     // Drop the client so the next poll reconnects from scratch; keep showing the last data.
-    const c = clients.get(m.id);
-    clients.delete(m.id);
-    c?.client.close?.().catch(() => {});
+    // Only if it is still the one this read used: a reset may already have replaced it.
+    if (entry && clients.get(m.id) === entry) clients.delete(m.id);
+    entry?.client.close?.().catch(() => {});
     const prev = lastGood.get(m.id);
     const error = explain(err);
     if (!reported.has(m.id + ":err")) {
