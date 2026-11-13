@@ -1,5 +1,6 @@
 // The office: canvas rendering, movement and the sidebar. Data comes from ./hosts.ts.
-import { fetchState } from "./hosts.ts";
+import { fetchState, resetConnections, verifyConnections } from "./hosts.ts";
+import { STALE_AFTER_MS, wakeAction } from "./wake.ts";
 import { showMachineStatus } from "./machines.ts";
 import { bucket, setContext, track } from "./analytics.ts";
 
@@ -2335,9 +2336,22 @@ function reportLoad(data) {
   });
 }
 
+// A poll stuck on a dead connection must not hold up a fresh one, so each poll carries a
+// generation and only the latest one applies its result and schedules the next.
+let pollGen = 0;
+let pollTimer = null;
+let pollScheduledAt = Date.now();
 async function poll() {
+  const gen = ++pollGen;
+  clearTimeout(pollTimer);
+  // A visible tab whose timer fired far too late: the computer slept, and no visibility event
+  // fires for that when Safari stays the front window.
+  const lateMs = Date.now() - pollScheduledAt - POLL_MS;
+  if (!document.hidden && lateMs >= STALE_AFTER_MS)
+    wake({ awayMs: lateMs }, false);
   try {
     const data = await fetchState();
+    if (gen !== pollGen) return;
     document.getElementById("demo-banner").hidden = !data.demo;
     showMachineStatus(data.hosts);
     reportLoad(data);
@@ -2362,8 +2376,44 @@ async function poll() {
   } catch (err) {
     console.warn("poll failed", err);
   }
-  setTimeout(poll, POLL_MS);
+  if (gen === pollGen) {
+    pollScheduledAt = Date.now();
+    pollTimer = setTimeout(poll, POLL_MS);
+  }
 }
+
+// Coming back to the page: its sockets may be dead without the client knowing (Safari closes
+// a background tab's silently). Reconnect or check them, and refresh right away instead of
+// waiting for a request on a dead socket to time out. Wall-clock time, because it keeps
+// counting while the computer sleeps.
+let hiddenAt = document.hidden ? Date.now() : null;
+let lastResetAt = -Infinity;
+function wake({ awayMs = 0, forced = false }, pollNow = true) {
+  const action = wakeAction({
+    awayMs,
+    forced,
+    sinceResetMs: Date.now() - lastResetAt,
+  });
+  if (action === "reset") {
+    lastResetAt = Date.now();
+    resetConnections();
+  } else if (action === "verify") verifyConnections();
+  if (pollNow && action !== "none") poll();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    hiddenAt = Date.now();
+    return;
+  }
+  const awayMs = hiddenAt === null ? 0 : Date.now() - hiddenAt;
+  hiddenAt = null;
+  wake({ awayMs });
+});
+// Restored from the back/forward cache: every socket was closed while the page was frozen.
+window.addEventListener("pageshow", (ev) => {
+  if (ev.persisted) wake({ forced: true });
+});
+window.addEventListener("online", () => wake({ forced: true }));
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000);

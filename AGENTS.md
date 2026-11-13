@@ -14,7 +14,7 @@ Scranton: a static pixel-art page that shows Paseo agents across machines, fed b
 ```bash
 npm install
 npm run dev            # page with demo data
-npm test               # plugin unit tests (vitest)
+npm test               # plugin and web unit tests (vitest)
 npm run typecheck
 npm run format:fix
 node packages/plugin/scripts/dev.mjs <connection> install|reload|call|logs
